@@ -1,16 +1,12 @@
 import re
-from playwright.sync_api import Playwright, expect, sync_playwright
+from playwright.sync_api import Playwright, expect, sync_playwright, Page
 import json
 
 
 # inner_text：获取用户在浏览器中实际看到的文本。
 # text_content：获取元素内的所有文本内容，包括不可见的部分和原始文本结构。
 
-def run(playwright: Playwright):
-    browser = playwright.chromium.launch(headless=False)
-    context = browser.new_context()
-    page = context.new_page()
-    page.goto("https://ssr1.scrape.center/")
+def scrape_movie_from_page(page: Page):
     nodes = page.query_selector_all('.el-card.item.m-t.is-hover-shadow')
     movie_list = []
     for node in nodes:
@@ -29,15 +25,32 @@ def run(playwright: Playwright):
             "release_date": release_date,
             "score": score
         })
-    json_data = json.dumps(movie_list, ensure_ascii=False, indent=4)
-    # ensure_ascii = False: 这个参数指定了在编码时是否确保输出是ASCII码
-    # indent = 4: 这个参数指定了JSON字符串的缩进级别，用于美化输出
+    return movie_list
 
-    # 将数据写入文件
-    with open('./ssr1_movies.json', 'w', encoding='utf-8') as f:
-        f.write(json_data)
 
-    browser.close()
+def run(playwright: Playwright, max_pages=10):
+    # 使用css选择器定位元素
+    browser = playwright.chromium.launch(headless=False)
+    context = browser.new_context()
+    page = context.new_page()
+    page.goto("https://ssr1.scrape.center/")
+    all_movies = []
+    current_page = 1
+    while True:
+        all_movies.extend(scrape_movie_from_page(page))
+        next_button = page.query_selector('.btn-next')
+        if next_button.is_disabled():  # 如果没有下一页，则退出循环
+            break
+        next_button.click()
+        current_page += 1
+        if current_page > max_pages:
+            break
+    save_movies_into_json(all_movies, 'ssr1_movies.json')
+
+
+def save_movies_into_json(movies, filename):
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(movies, f, ensure_ascii=False, indent=4)
 
 
 with sync_playwright() as playwright:
