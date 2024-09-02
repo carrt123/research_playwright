@@ -40,12 +40,10 @@ def run(playwright: Playwright, max_pages=10):
     while True:
         all_movies.extend(scrape_movie_from_page(page))
         next_button = page.query_selector('.btn-next')
-        if next_button.is_disabled():  # 如果没有下一页，则退出循环
-            break
-        next_button.click()
         current_page += 1
         if current_page > max_pages:
             break
+        next_button.click()
     save_movies_into_json(all_movies, 'ssr2_movies.json')
 
 
