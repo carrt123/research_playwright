@@ -40,6 +40,8 @@ def run(playwright: Playwright, max_pages=10):
     while True:
         all_movies.extend(scrape_movie_from_page(page))
         next_button = page.query_selector('.btn-next')
+        if not next_button or 'disabled' in next_button.get_attribute('class'):
+            break
         current_page += 1
         if current_page > max_pages:
             break
