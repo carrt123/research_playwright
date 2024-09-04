@@ -33,32 +33,21 @@ def run(playwright: Playwright, max_pages=10):
     browser = playwright.chromium.launch(headless=True)
     context = browser.new_context()
     page = context.new_page()
-    page.goto("https://ssr1.scrape.center/")
+    base_url = "https://ssr1.scrape.center"
+    page.goto(base_url)
     all_movies = []
     current_page = 1
 
     while True:
         movies = page.query_selector_all('.name')
-        movie_count = len(movies)
-        print(f"Found {movie_count} movies on page {current_page}")
-
-        for i in range(movie_count):
+        movie_urls = [movie.get_attribute('href') for movie in movies]
+        for url in movie_urls:
             try:
-                # 重新获取最新的元素
-                movie = page.query_selector_all('.name')[i]
-
-                # 检查元素是否可见且仍在DOM中
-                if movie.is_visible():
-                    print(f"Clicking movie at index {i}")
-                    movie.click()
-                    all_movies.extend(scrape_movie_from_page(page))
-                    page.go_back()
-                    time.sleep(1)  # 给页面一点时间稳定
-                else:
-                    print(f"Movie element at index {i} is not visible anymore.")
-            except Exception as e:
-                print(f"Error clicking movie at index {i}: {e}")
-                continue
+                page.goto(base_url + url)
+                all_movies.extend(scrape_movie_from_page(page))
+            except TimeoutError:
+                print(f'Timed out:{base_url + url}')
+            page.go_back()
 
         next_button = page.query_selector('.btn-next')
         if not next_button or 'disabled' in next_button.get_attribute('class'):
