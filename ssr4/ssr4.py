@@ -33,7 +33,7 @@ def run(playwright: Playwright, max_pages=10):
     browser = playwright.chromium.launch(headless=True)
     context = browser.new_context()
     page = context.new_page()
-    base_url = "https://ssr1.scrape.center"
+    base_url = "https://ssr4.scrape.center"
     page.goto(base_url)
     all_movies = []
     current_page = 1
@@ -45,6 +45,7 @@ def run(playwright: Playwright, max_pages=10):
             try:
                 page.goto(base_url + url)
                 all_movies.extend(scrape_movie_from_page(page))
+                print(f'Fetched movie: {url}')
             except TimeoutError:
                 print(f'Timed out:{base_url + url}')
             page.go_back()
